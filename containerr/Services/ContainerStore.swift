@@ -135,6 +135,12 @@ final class ContainerStore {
         if imageSelection == image.id { imageSelection = nil }
     }
 
+    /// Opens an interactive shell for the container in Terminal.app.
+    func openShell(_ id: String) {
+        do { try cli.openShell(id: id) }
+        catch { phase = .error(error.localizedDescription) }
+    }
+
     func start(_ id: String) async { await act(id) { try await self.cli.start(id: id) } }
     func stop(_ id: String) async { await act(id) { try await self.cli.stop(id: id) } }
     func delete(_ id: String) async {
