@@ -16,6 +16,9 @@ struct RunContainerView: View {
     @State private var errorMessage: String?
     @State private var customMemory = false
     @State private var customMemoryText = ""
+    @AppStorage(SettingsKey.overrideResourceLimits) private var overrideLimits = false
+
+    private var policy: ResourcePolicy { ResourcePolicy(override: overrideLimits) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,30 +47,34 @@ struct RunContainerView: View {
                             value: Binding(
                                 get: { Double(options.cpus) },
                                 set: { options.cpus = Int($0) }),
-                            in: 1...Double(Self.maxCPUs), step: 1)
-                        Text("Containers can use up to \(Self.maxCPUs) cores. The other \(Self.cpuReserve) stay free for macOS.")
+                            in: 1...Double(policy.maxCPUs), step: 1)
+                        Text(overrideLimits
+                            ? "Containers can use all \(policy.maxCPUs) cores. No cores are held back for macOS."
+                            : "Containers can use up to \(policy.maxCPUs) cores. The other \(ResourcePolicy.cpuReserve) stay free for macOS.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     VStack(alignment: .leading, spacing: 6) {
-                        LabeledContent("Memory", value: Self.formatMiB(options.memoryMiB))
+                        LabeledContent("Memory", value: ResourcePolicy.formatMiB(options.memoryMiB))
                         if customMemory {
                             TextField("MB", text: $customMemoryText)
                                 .onChange(of: customMemoryText) { applyCustomMemory() }
-                            Text("Choose from 256 MB to \(Self.formatMiB(Self.maxMemoryMiB)).")
+                            Text("Choose from 256 MB to \(ResourcePolicy.formatMiB(policy.maxMemoryMiB)).")
                                 .font(.caption).foregroundStyle(.secondary)
                         } else {
                             Slider(
                                 value: Binding(
-                                    get: { Double(Self.stopIndex(for: options.memoryMiB)) },
-                                    set: { options.memoryMiB = Self.memoryStops[Int($0)] }),
-                                in: 0...Double(Self.memoryStops.count - 1), step: 1)
+                                    get: { Double(policy.stopIndex(for: options.memoryMiB)) },
+                                    set: { options.memoryMiB = policy.memoryStops[Int($0)] }),
+                                in: 0...Double(policy.memoryStops.count - 1), step: 1)
                         }
                         Toggle("Custom amount", isOn: $customMemory)
                             .onChange(of: customMemory) {
                                 if customMemory { customMemoryText = "\(options.memoryMiB)" }
-                                else { options.memoryMiB = Self.nearestStop(options.memoryMiB) }
+                                else { options.memoryMiB = policy.nearestStop(options.memoryMiB) }
                             }
-                        Text("Containers can use up to \(Self.formatMiB(Self.maxMemoryMiB)). Memory is set aside in full, so \(Self.formatMiB(Self.memoryReserveMiB)) stays free for macOS.")
+                        Text(overrideLimits
+                            ? "Containers can use up to \(ResourcePolicy.formatMiB(policy.maxMemoryMiB)). No memory is held back for macOS."
+                            : "Containers can use up to \(ResourcePolicy.formatMiB(policy.maxMemoryMiB)). Memory is set aside in full, so \(ResourcePolicy.formatMiB(policy.memoryReserveMiB)) stays free for macOS.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -109,45 +116,10 @@ struct RunContainerView: View {
         }
     }
 
-    // Host limits, so the sliders can't exceed the machine's real resources.
-
-    /// Cores kept strictly for the host system (e.g. 14-core → 10 assignable).
-    private static let cpuReserve = 4
-    private static let maxCPUs = max(1, ProcessInfo.processInfo.activeProcessorCount - cpuReserve)
-
-    private static let totalMemoryMiB = Int(ProcessInfo.processInfo.physicalMemory / (1024 * 1024))
-    /// Memory is allocated in full (no dynamic scaling), so we reserve the
-    /// larger of 6 GB or 25% of total RAM for the host system.
-    private static let memoryReserveMiB = max(6144, totalMemoryMiB / 4)
-    private static let maxMemoryMiB = max(256, totalMemoryMiB - memoryReserveMiB)
-
-    /// Standard slider stops, capped to what's available after the reserve.
-    private static let memoryStops: [Int] = {
-        let all = [256, 512, 1024, 2048, 4096, 8192, 16384]
-        let usable = all.filter { $0 <= maxMemoryMiB }
-        return usable.isEmpty ? [256] : usable
-    }()
-
-    /// Index of the stop at or just below `mib` (for restoring slider position).
-    private static func stopIndex(for mib: Int) -> Int {
-        let idx = memoryStops.lastIndex { $0 <= mib } ?? 0
-        return idx
-    }
-
-    private static func nearestStop(_ mib: Int) -> Int {
-        memoryStops.min { abs($0 - mib) < abs($1 - mib) } ?? memoryStops[0]
-    }
-
-    private static func formatMiB(_ mib: Int) -> String {
-        mib >= 1024 && mib % 1024 == 0
-            ? "\(mib / 1024) GB"
-            : "\(mib) MB"
-    }
-
-    /// Parses the custom field, clamping to the allowed range.
+    /// Parses the custom field, clamping to the range allowed by the policy.
     private func applyCustomMemory() {
         guard let value = Int(customMemoryText.trimmingCharacters(in: .whitespaces)) else { return }
-        options.memoryMiB = min(max(value, 256), Self.maxMemoryMiB)
+        options.memoryMiB = min(max(value, 256), policy.maxMemoryMiB)
     }
 
     private func submit() async {
