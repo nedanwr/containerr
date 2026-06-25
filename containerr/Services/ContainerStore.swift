@@ -73,6 +73,20 @@ final class ContainerStore {
         catch { phase = .error(error.localizedDescription) }
     }
 
+    /// Creates a container. Returns nil on success, or an error message to show
+    /// in the wizard (keeps the sheet open so the user can fix and retry).
+    func create(_ options: RunOptions) async -> String? {
+        do {
+            try await cli.create(options)
+            selection = options.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? nil : options.name
+            await refresh()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     func start(_ id: String) async { await act(id) { try await self.cli.start(id: id) } }
     func stop(_ id: String) async { await act(id) { try await self.cli.stop(id: id) } }
     func delete(_ id: String) async {
