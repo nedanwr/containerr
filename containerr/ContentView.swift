@@ -2,20 +2,50 @@
 //  ContentView.swift
 //  containerr
 //
-//  Created by Naveed Ali Anwar on 6/25/26.
-//
 
 import SwiftUI
 
 struct ContentView: View {
+    @State private var store = ContainerStore()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        // Custom split: flat, opaque panes with a soft gray divider we control
+        // (HSplitView forces a hard system divider line; NavigationSplitView floats).
+        ResizableSplit {
+            ContainerListView(store: store)
+        } detail: {
+            detail
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle("Containerr")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { Task { await store.refresh() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Refresh")
+            }
+        }
+        .task { store.startPolling() }
+        .onDisappear { store.stopPolling() }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        switch store.phase {
+        case .unavailable(let msg):
+            DaemonUnavailableView(store: store, message: msg)
+        case .error(let msg):
+            ContentUnavailableView("Something Went Wrong", systemImage: "xmark.octagon",
+                description: Text(msg))
+        default:
+            if let container = store.selected() {
+                ContainerDetailView(store: store, container: container)
+            } else {
+                ContentUnavailableView("Select a Container", systemImage: "shippingbox",
+                    description: Text("Choose a container from the sidebar to see details."))
+            }
+        }
     }
 }
 
