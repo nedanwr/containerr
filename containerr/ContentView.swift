@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var store = ContainerStore()
+    @State private var showingRun = false
 
     var body: some View {
         // Custom split: flat, opaque panes with a soft gray divider we control
@@ -20,11 +21,20 @@ struct ContentView: View {
         .navigationTitle("Containerr")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button { showingRun = true } label: {
+                    Image(systemName: "plus")
+                }
+                .help("Run a new container")
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button { Task { await store.refresh() } } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help("Refresh")
             }
+        }
+        .sheet(isPresented: $showingRun) {
+            RunContainerView(store: store)
         }
         .task { store.startPolling() }
         .onDisappear { store.stopPolling() }
