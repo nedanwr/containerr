@@ -12,6 +12,8 @@ struct containerrApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .frame(minWidth: 720, minHeight: 460)
         }
+        .defaultSize(width: 900, height: 580)
     }
 }
