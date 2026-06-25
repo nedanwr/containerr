@@ -23,12 +23,16 @@ final class ContainerStore {
     private(set) var phase: Phase = .loading
     /// IDs with an action currently in flight, so rows can disable/spin.
     private(set) var busy: Set<String> = []
+    /// True while a `brew install container` is in flight.
+    private(set) var installing = false
     var selection: String?
 
-    private let cli = ContainerCLI()
+    private var cli = ContainerCLI()
+    private let brew = Homebrew()
     private var pollTask: Task<Void, Never>?
 
     var binaryAvailable: Bool { cli.isAvailable }
+    var homebrewAvailable: Bool { brew.isAvailable }
 
     func selected() -> ContainerSnapshot? {
         containers.first { $0.id == selection }
@@ -53,7 +57,9 @@ final class ContainerStore {
 
     func refresh() async {
         guard cli.isAvailable else {
-            phase = .unavailable("The `container` CLI was not found. Install it from github.com/apple/container.")
+            phase = .unavailable(brew.isAvailable
+                ? "The `container` CLI isn't installed. Install it with Homebrew below."
+                : "The `container` CLI isn't installed. Install Homebrew, or download it from github.com/apple/container.")
             return
         }
         do {
@@ -71,6 +77,24 @@ final class ContainerStore {
     func startDaemon() async {
         do { try await cli.systemStart(); await refresh() }
         catch { phase = .error(error.localizedDescription) }
+    }
+
+    /// Installs the `container` formula via Homebrew, then re-detects the CLI
+    /// and starts the system service.
+    func installViaHomebrew() async {
+        guard brew.isAvailable, !installing else { return }
+        installing = true
+        defer { installing = false }
+        do {
+            try await brew.installContainer()
+            cli = ContainerCLI()  // re-detect now that the binary should exist
+            if cli.isAvailable {
+                try? await cli.systemStart()
+            }
+            await refresh()
+        } catch {
+            phase = .error(error.localizedDescription)
+        }
     }
 
     /// Creates a container. Returns nil on success, or an error message to show
