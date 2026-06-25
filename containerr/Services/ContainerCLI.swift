@@ -103,6 +103,31 @@ struct ContainerCLI {
 
     func systemStart() async throws { try await run(["system", "start"]) }
 
+    /// Opens an interactive shell in Terminal.app. We can't host a TTY inside
+    /// our own Process, so we drop a `.command` script and let `open` route it
+    /// to Terminal, which provides the interactive terminal.
+    func openShell(id: String, shell: String = "/bin/sh") throws {
+        guard let binaryPath else { throw CLIError.binaryNotFound }
+        let script = """
+        #!/bin/bash
+        exec \(shellQuote(binaryPath)) exec -it \(shellQuote(id)) \(shellQuote(shell))
+        """
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("containerr-shell-\(id).command")
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+
+        let open = Process()
+        open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        open.arguments = [url.path]
+        try open.run()
+    }
+
+    /// Wraps a value in single quotes for safe embedding in the shell script.
+    private func shellQuote(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
     // MARK: - Images
 
     func images() async throws -> [ImageSummary] {
