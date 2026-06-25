@@ -75,6 +75,50 @@ struct SnapshotDecodingTests {
     }
 }
 
+// MARK: - Image decoding
+
+struct ImageDecodingTests {
+
+    /// Trimmed copy of real `container image list --format json` output.
+    static let sampleJSON = """
+    [
+      {
+        "id": "sha256:ec4ed8b5299e5e90694af7750eb6dffd2627317d30544d056b0371f8082f7bce",
+        "configuration": {
+          "name": "docker.io/library/nginx:latest",
+          "creationDate": "2026-06-24T01:22:24Z"
+        },
+        "variants": [
+          { "size": 61426176, "platform": { "architecture": "arm64", "os": "linux" } }
+        ]
+      }
+    ]
+    """
+
+    private func decode(_ json: String) throws -> [ImageSummary] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([ImageSummary].self, from: Data(json.utf8))
+    }
+
+    @Test func decodesReferenceSizeAndPlatform() throws {
+        let img = try #require(try decode(Self.sampleJSON).first)
+        #expect(img.reference == "docker.io/library/nginx:latest")
+        #expect(img.shortDigest == "ec4ed8b5299e")     // sha256: stripped, 12 chars
+        #expect(img.sizeBytes == 61426176)
+        #expect(img.platforms == ["linux/arm64"])
+    }
+
+    @Test func toleratesMissingVariants() throws {
+        let json = """
+        [{ "id": "sha256:abc", "configuration": { "name": "alpine" } }]
+        """
+        let img = try #require(try decode(json).first)
+        #expect(img.sizeBytes == 0)
+        #expect(img.platforms.isEmpty)
+    }
+}
+
 // MARK: - RunOptions argument building
 
 struct RunOptionsTests {
