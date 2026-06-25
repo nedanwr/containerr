@@ -25,6 +25,7 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
                 .help("Run a new container")
+                .accessibilityIdentifier("runContainerButton")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button { Task { await store.refresh() } } label: {
