@@ -102,4 +102,16 @@ struct ContainerCLI {
     }
 
     func systemStart() async throws { try await run(["system", "start"]) }
+
+    // MARK: - Images
+
+    func images() async throws -> [ImageSummary] {
+        let data = try await run(["image", "list", "--format", "json"])
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([ImageSummary].self, from: data)
+    }
+
+    func pullImage(reference: String) async throws { try await run(["image", "pull", reference]) }
+    func deleteImage(reference: String) async throws { try await run(["image", "delete", reference]) }
 }
