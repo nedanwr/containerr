@@ -87,6 +87,11 @@ struct ContainerCLI {
         return try decoder.decode([ContainerSnapshot].self, from: data)
     }
 
+    /// Creates and starts a detached container from `container run`.
+    func create(_ options: RunOptions) async throws {
+        try await run(options.arguments)
+    }
+
     func start(id: String) async throws { try await run(["start", id]) }
     func stop(id: String) async throws { try await run(["stop", id]) }
     func delete(id: String) async throws { try await run(["delete", "--force", id]) }
