@@ -20,12 +20,14 @@ final class ContainerStore {
     }
 
     private(set) var containers: [ContainerSnapshot] = []
+    private(set) var images: [ImageSummary] = []
     private(set) var phase: Phase = .loading
     /// IDs with an action currently in flight, so rows can disable/spin.
     private(set) var busy: Set<String> = []
     /// True while a `brew install container` is in flight.
     private(set) var installing = false
     var selection: String?
+    var imageSelection: String?
 
     private var cli = ContainerCLI()
     private let brew = Homebrew()
@@ -36,6 +38,10 @@ final class ContainerStore {
 
     func selected() -> ContainerSnapshot? {
         containers.first { $0.id == selection }
+    }
+
+    func selectedImage() -> ImageSummary? {
+        images.first { $0.id == imageSelection }
     }
 
     // MARK: - Polling lifecycle
@@ -64,6 +70,7 @@ final class ContainerStore {
         }
         do {
             containers = try await cli.list().sorted { $0.id < $1.id }
+            images = try await cli.images().sorted { $0.reference < $1.reference }
             phase = .ready
         } catch CLIError.daemonDown {
             phase = .unavailable("The container system service isn't running.")
@@ -109,6 +116,23 @@ final class ContainerStore {
         } catch {
             return error.localizedDescription
         }
+    }
+
+    /// Pulls an image by reference. Returns nil on success or an error message
+    /// for the pull sheet (keeps it open so the user can fix and retry).
+    func pull(_ reference: String) async -> String? {
+        do {
+            try await cli.pullImage(reference: reference)
+            await refresh()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func deleteImage(_ image: ImageSummary) async {
+        await act(image.id) { try await self.cli.deleteImage(reference: image.reference) }
+        if imageSelection == image.id { imageSelection = nil }
     }
 
     func start(_ id: String) async { await act(id) { try await self.cli.start(id: id) } }
