@@ -129,6 +129,54 @@ struct RunOptionsTests {
     }
 }
 
+// MARK: - Binary detection
+
+struct BinaryDetectionTests {
+
+    @Test func homebrewPicksFirstExisting() {
+        let brew = Homebrew(candidatePaths: ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"],
+                            isExecutable: { $0 == "/usr/local/bin/brew" })
+        #expect(brew.binaryPath == "/usr/local/bin/brew")
+        #expect(brew.isAvailable)
+    }
+
+    @Test func homebrewPrefersAppleSiliconWhenBothExist() {
+        // Apple Silicon prefix is listed first, so it wins when both resolve.
+        let brew = Homebrew(candidatePaths: ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"],
+                            isExecutable: { _ in true })
+        #expect(brew.binaryPath == "/opt/homebrew/bin/brew")
+    }
+
+    @Test func homebrewUnavailableWhenNoneExist() {
+        let brew = Homebrew(candidatePaths: ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"],
+                            isExecutable: { _ in false })
+        #expect(brew.binaryPath == nil)
+        #expect(!brew.isAvailable)
+    }
+
+    @Test func cliPrefersCandidateOverPath() {
+        let cli = ContainerCLI(candidatePaths: ["/usr/local/bin/container"],
+                               pathEnv: "/some/dir",
+                               isExecutable: { _ in true })
+        #expect(cli.binaryPath == "/usr/local/bin/container")
+    }
+
+    @Test func cliFallsBackToPathLookup() {
+        let cli = ContainerCLI(candidatePaths: ["/usr/local/bin/container"],
+                               pathEnv: "/opt/tools:/custom/bin",
+                               isExecutable: { $0 == "/custom/bin/container" })
+        #expect(cli.binaryPath == "/custom/bin/container")
+    }
+
+    @Test func cliUnavailableWhenNowhereFound() {
+        let cli = ContainerCLI(candidatePaths: ["/usr/local/bin/container"],
+                               pathEnv: "/opt/tools",
+                               isExecutable: { _ in false })
+        #expect(cli.binaryPath == nil)
+        #expect(!cli.isAvailable)
+    }
+}
+
 // MARK: - Resource policy
 
 struct ResourcePolicyTests {
