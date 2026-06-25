@@ -32,20 +32,20 @@ struct ContainerCLI {
     let binaryPath: String?
 
     init() {
-        binaryPath = Self.candidatePaths.first { FileManager.default.isExecutableFile(atPath: $0) }
-            ?? Self.lookupOnPath()
+        self.init(candidatePaths: Self.candidatePaths,
+                  pathEnv: ProcessInfo.processInfo.environment["PATH"])
+    }
+
+    /// Testable initializer: resolves the binary over an injectable candidate
+    /// list, then `$PATH`, using an injectable executable probe.
+    init(candidatePaths: [String],
+         pathEnv: String?,
+         isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }) {
+        let pathDirs = (pathEnv ?? "").split(separator: ":").map { "\($0)/container" }
+        binaryPath = (candidatePaths + pathDirs).first(where: isExecutable)
     }
 
     var isAvailable: Bool { binaryPath != nil }
-
-    private static func lookupOnPath() -> String? {
-        guard let path = ProcessInfo.processInfo.environment["PATH"] else { return nil }
-        for dir in path.split(separator: ":") {
-            let candidate = "\(dir)/container"
-            if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
-        }
-        return nil
-    }
 
     // MARK: - Core invocation
 
