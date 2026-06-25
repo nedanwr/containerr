@@ -19,7 +19,13 @@ struct Homebrew {
     let binaryPath: String?
 
     init() {
-        binaryPath = Self.candidatePaths.first { FileManager.default.isExecutableFile(atPath: $0) }
+        self.init(candidatePaths: Self.candidatePaths)
+    }
+
+    /// Testable initializer: detection over an injectable path list and probe.
+    init(candidatePaths: [String],
+         isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }) {
+        binaryPath = candidatePaths.first(where: isExecutable)
     }
 
     var isAvailable: Bool { binaryPath != nil }
