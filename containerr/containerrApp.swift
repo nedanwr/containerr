@@ -15,5 +15,9 @@ struct containerrApp: App {
                 .frame(minWidth: 720, minHeight: 460)
         }
         .defaultSize(width: 900, height: 580)
+
+        Settings {
+            SettingsView()
+        }
     }
 }
