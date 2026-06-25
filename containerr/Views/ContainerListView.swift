@@ -27,6 +27,7 @@ struct ContainerListView: View {
     @ViewBuilder
     private func rowActions(for container: ContainerSnapshot) -> some View {
         if container.state == .running {
+            Button("Open Shell") { store.openShell(container.id) }
             Button("Stop") { Task { await store.stop(container.id) } }
         } else {
             Button("Start") { Task { await store.start(container.id) } }
