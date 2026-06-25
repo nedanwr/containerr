@@ -1,0 +1,18 @@
+# Xcode
+## User settings
+xcuserdata/
+*.xcuserstate
+
+## Build artifacts
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+
+## Swift Package Manager
+.build/
+.swiftpm/
+
+## macOS
+.DS_Store
