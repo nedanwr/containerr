@@ -11,7 +11,14 @@ struct RunContainerView: View {
     let store: ContainerStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var options = RunOptions()
+    @State private var options: RunOptions
+
+    init(store: ContainerStore, prefillImage: String = "") {
+        self.store = store
+        var initial = RunOptions()
+        initial.image = prefillImage
+        _options = State(initialValue: initial)
+    }
     @State private var submitting = false
     @State private var errorMessage: String?
     @State private var customMemory = false
