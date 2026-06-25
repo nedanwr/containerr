@@ -24,7 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		813A42032FED1A87007B3CB5 /* containerr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = containerr.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		813A42032FED1A87007B3CB5 /* containerr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = containerr.app; path = Containerr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		813A42102FED1A88007B3CB5 /* containerrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = containerrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		813A421A2FED1A88007B3CB5 /* containerrUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = containerrUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
