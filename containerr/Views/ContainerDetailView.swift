@@ -24,6 +24,9 @@ struct ContainerDetailView: View {
         .toolbar {
             ToolbarItemGroup {
                 if container.state == .running {
+                    Button { store.openShell(container.id) } label: {
+                        Label("Open Shell", systemImage: "terminal")
+                    }
                     Button { Task { await store.stop(container.id) } } label: {
                         Label("Stop", systemImage: "stop.fill")
                     }
