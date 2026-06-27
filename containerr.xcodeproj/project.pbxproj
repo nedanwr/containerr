@@ -407,6 +407,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = oceancitytechnologies.containerr;
+				PRODUCT_MODULE_NAME = containerr;
 				PRODUCT_NAME = Containerr;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -438,6 +439,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = oceancitytechnologies.containerr;
+				PRODUCT_MODULE_NAME = containerr;
 				PRODUCT_NAME = Containerr;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -465,7 +467,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/containerr.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/containerr";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Containerr.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Containerr";
 			};
 			name = Debug;
 		};
@@ -485,7 +487,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/containerr.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/containerr";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Containerr.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Containerr";
 			};
 			name = Release;
 		};
