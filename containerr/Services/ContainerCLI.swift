@@ -101,6 +101,36 @@ struct ContainerCLI {
         return String(decoding: data, as: UTF8.self)
     }
 
+    /// Streams `container logs --follow`, yielding output chunks as they arrive.
+    /// The underlying process is terminated when the stream is cancelled.
+    func streamLogs(id: String, tail: Int = 200) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            guard let binaryPath else { continuation.finish(); return }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: binaryPath)
+            process.arguments = ["logs", "--follow", "-n", "\(tail)", id]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+
+            let handle = pipe.fileHandleForReading
+            handle.readabilityHandler = { fh in
+                let data = fh.availableData
+                guard !data.isEmpty else { return }
+                continuation.yield(String(decoding: data, as: UTF8.self))
+            }
+            process.terminationHandler = { _ in
+                handle.readabilityHandler = nil
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                handle.readabilityHandler = nil
+                if process.isRunning { process.terminate() }
+            }
+            do { try process.run() } catch { continuation.finish() }
+        }
+    }
+
     func systemStart() async throws { try await run(["system", "start"]) }
 
     /// Opens an interactive shell in Terminal.app. We can't host a TTY inside
