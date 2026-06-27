@@ -221,6 +221,40 @@ struct BinaryDetectionTests {
     }
 }
 
+// MARK: - Log buffer
+
+struct LogBufferTests {
+
+    @Test func appendAccumulatesInOrder() {
+        var buffer = LogBuffer()
+        buffer.append("hello ")
+        buffer.append("world")
+        #expect(buffer.text == "hello world")
+    }
+
+    @Test func capsToMostRecentCharacters() {
+        var buffer = LogBuffer(maxCharacters: 5)
+        buffer.append("12345")
+        buffer.append("678")
+        // Oldest trimmed, newest kept.
+        #expect(buffer.text == "45678")
+        #expect(buffer.text.count == 5)
+    }
+
+    @Test func singleChunkLargerThanCapIsTrimmed() {
+        var buffer = LogBuffer(maxCharacters: 3)
+        buffer.append("abcdef")
+        #expect(buffer.text == "def")
+    }
+
+    @Test func clearResetsText() {
+        var buffer = LogBuffer(maxCharacters: 10)
+        buffer.append("data")
+        buffer.clear()
+        #expect(buffer.text.isEmpty)
+    }
+}
+
 // MARK: - Resource policy
 
 struct ResourcePolicyTests {
