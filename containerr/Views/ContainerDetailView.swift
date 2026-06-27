@@ -96,32 +96,41 @@ private struct InfoTab: View {
 private struct LogsTab: View {
     let store: ContainerStore
     let id: String
-    @State private var logs = ""
-    @State private var loading = false
+    @State private var buffer = LogBuffer()
+    @State private var following = true
 
     var body: some View {
-        ScrollView {
-            Text(logs.isEmpty ? "No log output." : logs)
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
+        ScrollViewReader { proxy in
+            ScrollView {
+                Text(buffer.text.isEmpty ? "No log output." : buffer.text)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                Color.clear.frame(height: 1).id("bottom")
+            }
+            .onChange(of: buffer.text) {
+                if following { proxy.scrollTo("bottom", anchor: .bottom) }
+            }
         }
         .overlay(alignment: .topTrailing) {
-            Button { Task { await load() } } label: {
-                Image(systemName: "arrow.clockwise")
+            Toggle(isOn: $following) {
+                Label("Follow", systemImage: "arrow.down.to.line")
             }
-            .buttonStyle(.borderless)
+            .toggleStyle(.button)
+            .controlSize(.small)
             .padding(8)
-            .disabled(loading)
         }
-        .task(id: id) { await load() }
-    }
-
-    private func load() async {
-        loading = true
-        defer { loading = false }
-        do { logs = try await ContainerCLI().logs(id: id) }
-        catch { logs = "Failed to load logs: \(error.localizedDescription)" }
+        // Re-subscribe when the container or follow mode changes.
+        .task(id: "\(id)-\(following)") {
+            buffer.clear()
+            if following {
+                for await chunk in ContainerCLI().streamLogs(id: id) {
+                    buffer.append(chunk)
+                }
+            } else {
+                buffer.append((try? await ContainerCLI().logs(id: id)) ?? "")
+            }
+        }
     }
 }
