@@ -255,6 +255,64 @@ struct LogBufferTests {
     }
 }
 
+// MARK: - Search & filtering
+
+struct FilteringTests {
+
+    private func snapshot(id: String, image: String, state: String) throws -> ContainerSnapshot {
+        let json = """
+        { "id": "\(id)", "configuration": { "id": "\(id)",
+          "image": { "reference": "\(image)" } },
+          "status": { "state": "\(state)" } }
+        """
+        return try JSONDecoder().decode(ContainerSnapshot.self, from: Data(json.utf8))
+    }
+
+    private func containers() throws -> [ContainerSnapshot] {
+        [try snapshot(id: "web", image: "docker.io/library/nginx:latest", state: "running"),
+         try snapshot(id: "db", image: "docker.io/library/postgres:16", state: "stopped"),
+         try snapshot(id: "cache", image: "docker.io/library/redis:7", state: "running")]
+    }
+
+    @Test func emptySearchAndAllStateReturnsEverything() throws {
+        let all = try containers()
+        #expect(ContainerStore.filter(all, searchText: "", state: .all).count == 3)
+        #expect(ContainerStore.filter(all, searchText: "   ", state: .all).count == 3)
+    }
+
+    @Test func searchMatchesIdCaseInsensitively() throws {
+        let hits = ContainerStore.filter(try containers(), searchText: "WEB", state: .all)
+        #expect(hits.map(\.id) == ["web"])
+    }
+
+    @Test func searchMatchesImageReference() throws {
+        let hits = ContainerStore.filter(try containers(), searchText: "postgres", state: .all)
+        #expect(hits.map(\.id) == ["db"])
+    }
+
+    @Test func stateFilterSplitsRunningAndStopped() throws {
+        let all = try containers()
+        #expect(ContainerStore.filter(all, searchText: "", state: .running).map(\.id) == ["web", "cache"])
+        #expect(ContainerStore.filter(all, searchText: "", state: .stopped).map(\.id) == ["db"])
+    }
+
+    @Test func searchAndStateFilterCombine() throws {
+        let hits = ContainerStore.filter(try containers(), searchText: "redis", state: .stopped)
+        #expect(hits.isEmpty)
+    }
+
+    @Test func imageSearchMatchesReferenceAndDigest() throws {
+        let json = """
+        [{ "id": "sha256:ec4ed8b5299e5e90", "configuration": { "name": "docker.io/library/nginx:latest" } },
+         { "id": "sha256:aabbccddeeff0011", "configuration": { "name": "alpine:3" } }]
+        """
+        let images = try JSONDecoder().decode([ImageSummary].self, from: Data(json.utf8))
+        #expect(ContainerStore.filter(images, searchText: "NGINX").count == 1)
+        #expect(ContainerStore.filter(images, searchText: "aabbccddeeff").map(\.reference) == ["alpine:3"])
+        #expect(ContainerStore.filter(images, searchText: "zzz").isEmpty)
+    }
+}
+
 // MARK: - Resource policy
 
 struct ResourcePolicyTests {

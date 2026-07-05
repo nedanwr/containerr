@@ -52,9 +52,56 @@ struct ContentView: View {
             .labelsHidden()
             .padding(8)
 
+            searchBar
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+
             switch section {
             case .containers: ContainerListView(store: store)
             case .images: ImageListView(store: store)
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(section == .containers ? "Search containers" : "Search images",
+                          text: $store.searchText)
+                    .textFieldStyle(.plain)
+                    .accessibilityIdentifier("sidebarSearchField")
+                if !store.searchText.isEmpty {
+                    Button {
+                        store.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+
+            if section == .containers {
+                Menu {
+                    Picker("State", selection: $store.stateFilter) {
+                        ForEach(ContainerStore.StateFilter.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } label: {
+                    Image(systemName: store.stateFilter == .all
+                        ? "line.3.horizontal.decrease.circle"
+                        : "line.3.horizontal.decrease.circle.fill")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Filter by state")
             }
         }
     }

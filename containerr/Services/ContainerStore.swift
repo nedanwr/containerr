@@ -29,6 +29,52 @@ final class ContainerStore {
     var selection: String?
     var imageSelection: String?
 
+    // MARK: - Search & filtering
+
+    enum StateFilter: String, CaseIterable, Identifiable {
+        case all = "All"
+        case running = "Running"
+        case stopped = "Stopped"
+        var id: String { rawValue }
+    }
+
+    var searchText = ""
+    var stateFilter: StateFilter = .all
+
+    /// Containers matching the search text and state filter.
+    var filteredContainers: [ContainerSnapshot] {
+        Self.filter(containers, searchText: searchText, state: stateFilter)
+    }
+
+    /// Images matching the search text.
+    var filteredImages: [ImageSummary] {
+        Self.filter(images, searchText: searchText)
+    }
+
+    nonisolated static func filter(_ containers: [ContainerSnapshot],
+                                   searchText: String,
+                                   state: StateFilter) -> [ContainerSnapshot] {
+        containers.filter { container in
+            switch state {
+            case .all: break
+            case .running: guard container.state == .running else { return false }
+            case .stopped: guard container.state != .running else { return false }
+            }
+            return matches(searchText, in: container.id, container.image)
+        }
+    }
+
+    nonisolated static func filter(_ images: [ImageSummary],
+                                   searchText: String) -> [ImageSummary] {
+        images.filter { matches(searchText, in: $0.reference, $0.shortDigest) }
+    }
+
+    private nonisolated static func matches(_ query: String, in fields: String...) -> Bool {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return true }
+        return fields.contains { $0.localizedCaseInsensitiveContains(trimmed) }
+    }
+
     private var cli = ContainerCLI()
     private let brew = Homebrew()
     private var pollTask: Task<Void, Never>?

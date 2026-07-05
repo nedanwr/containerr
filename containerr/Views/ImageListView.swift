@@ -17,7 +17,7 @@ struct ImageListView: View {
 
     var body: some View {
         List(selection: $store.imageSelection) {
-            ForEach(store.images) { image in
+            ForEach(store.filteredImages) { image in
                 ImageRow(image: image, busy: store.busy.contains(image.id))
                     .tag(image.id)
                     .contextMenu {
@@ -28,9 +28,13 @@ struct ImageListView: View {
             }
         }
         .overlay {
-            if store.images.isEmpty, case .ready = store.phase {
-                ContentUnavailableView("No Images", systemImage: "photo.stack",
-                    description: Text("Pull one to get started."))
+            if store.filteredImages.isEmpty, case .ready = store.phase {
+                if store.images.isEmpty {
+                    ContentUnavailableView("No Images", systemImage: "photo.stack",
+                        description: Text("Pull one to get started."))
+                } else {
+                    ContentUnavailableView.search
+                }
             }
         }
     }

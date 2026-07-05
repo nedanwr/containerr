@@ -10,16 +10,20 @@ struct ContainerListView: View {
 
     var body: some View {
         List(selection: $store.selection) {
-            ForEach(store.containers) { container in
+            ForEach(store.filteredContainers) { container in
                 ContainerRow(container: container, busy: store.busy.contains(container.id))
                     .tag(container.id)
                     .contextMenu { rowActions(for: container) }
             }
         }
         .overlay {
-            if store.containers.isEmpty, case .ready = store.phase {
-                ContentUnavailableView("No Containers", systemImage: "shippingbox",
-                    description: Text("Run one with `container run` to see it here."))
+            if store.filteredContainers.isEmpty, case .ready = store.phase {
+                if store.containers.isEmpty {
+                    ContentUnavailableView("No Containers", systemImage: "shippingbox",
+                        description: Text("Run one with `container run` to see it here."))
+                } else {
+                    ContentUnavailableView.search
+                }
             }
         }
     }
